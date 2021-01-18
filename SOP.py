@@ -6,10 +6,11 @@ import numpy as np
 import requests
 import datetime
 import os
+import xlsxwriter
 
 # 设置时间
-start_days = '2020-12-01'
-end_days = '2020-12-27'
+start_days = '2021-01-01'
+end_days = '2021-01-18'
 start_day = datetime.datetime.strptime(start_days, '%Y-%m-%d').date()
 end_day = datetime.datetime.strptime(end_days, '%Y-%m-%d').date()
 daytime = -1
@@ -254,8 +255,7 @@ SP = d.groupby(['Shopify分类'], as_index=False).agg({'SPU_x': ['count'], '动�
 d['利润(USD)'] = d['售价和'] - d['成本和']
 d.rename(columns={'SPU_x': 'SPU', 'Shopify分类': '品类', '系列_x': '系列', 'Sku图片': '图片链接', '售价': '售价(USD)', '成本价': '成本价(USD)',
                   '空闲库存': '合格空闲(ending inventory)', '售价和': '售价和(USD)', '成本和': '销售成本和(USD)'}, inplace=True)
-file_name_d = "/Users/edz/Documents/{0}到{1}SPU数据表.xlsx".format(start_day, end_day)
-d.to_excel(file_name_d)
+
 
 # 设置"SPU占比"列 =spu数/总和数
 # 设置"动销率"列 =动销/SPU数
@@ -280,10 +280,7 @@ S.rename(columns={'SPU_x': 'SPU', '系列_x': '系列'}, inplace=True)
 SP.rename(columns={'SPU_x': 'SPU'}, inplace=True)
 S['月存销比'] = S['月存销比'].replace(np.inf, np.nan)
 SP['月存销比'] = SP['月存销比'].replace(np.inf, np.nan)
-file_name_S = "/Users/edz/Documents/{0}到{1}产品分析(by 系列).xlsx".format(start_day, end_day)
-file_name_SP = "/Users/edz/Documents/{0}到{1}产品分析(by shopify类别).xlsx".format(start_day, end_day)
-S.to_excel(file_name_S)
-SP.to_excel(file_name_SP)
+
 
 # sop7
 num_of_order = pd.Series([data_dd_pp['订单号'].nunique(), data_dd_kol['订单号'].nunique(), np.nan])
@@ -307,9 +304,18 @@ Product_Analysis2 = data_dd.groupby(['下单时间'], as_index=False).agg({'订�
 Product_Analysis2['日均售卖件数'] = Product_Analysis2[('数量', 'sum')] / Product_Analysis2[('订单号', 'nunique')]
 Product_Analysis2.rename(columns={'订单号': '总订单数', '数量': '售卖件数'}, inplace=True)
 
-file_name_PA1 = "/Users/edz/Documents/{0}到{1}产品分析(by 订单种类).xlsx".format(start_day, end_day)
-file_name_PA2 = "/Users/edz/Documents/{0}到{1}产品分析(by 下单日期).xlsx".format(start_day, end_day)
-Product_Analysis1.to_excel(file_name_PA1)
-Product_Analysis2.to_excel(file_name_PA2)
+
+writer = pd.ExcelWriter('/Users/edz/Documents/{0}到{1}产品分析sop.xlsx'.format(start_day, end_day), engine='xlsxwriter')
+
+# Write each dataframe to a different worksheet.
+d.to_excel(writer, sheet_name='SPU数据表')
+SP.to_excel(writer, sheet_name='shopify类别')
+S.to_excel(writer, sheet_name='系列')
+Product_Analysis1.to_excel(writer, sheet_name='订单种类')
+Product_Analysis2.to_excel(writer, sheet_name='下单日期')
+
+
+# Close the Pandas Excel writer and output the Excel file.
+writer.save()
 
 
